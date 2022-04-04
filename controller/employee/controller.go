@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"Api_DI/database"
 	"Api_DI/model"
 	"io/ioutil"
+
+	"github.com/gorilla/mux"
 )
 
 type employee struct {
@@ -38,9 +41,9 @@ func (e employee) AllEmployee() func(w http.ResponseWriter, r *http.Request) {
 		response.Message = "Success"
 		response.Data = rows
 
-		w.WriteHeader(202)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(202)
 		json.NewEncoder(w).Encode(response)
 	}
 }
@@ -119,19 +122,20 @@ func (e employee) UpdateEmployee() func(w http.ResponseWriter, r *http.Request) 
 func (e employee) DeleteEmployee() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var response model.Response
-		var id int64
-		body, err := ioutil.ReadAll(r.Body)
+		var id string
+		v := mux.Vars(r)
+		id, ok := v["id"]
+		if !ok {
+			log.Println("ID doesnt exist")
+			return
+		}
+		eid, err := strconv.Atoi(id)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
 
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		err = json.Unmarshal(body, &id)
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		err = e.db.Delete(id)
+		err = e.db.Delete(int64(eid))
 		if err != nil {
 			log.Println(err.Error())
 			return

@@ -6,6 +6,7 @@ import (
 	"Api_DI/model"
 	"database/sql"
 	"fmt"
+	"strconv"
 )
 
 type db struct {
@@ -48,20 +49,39 @@ func (d *db) Insert(employee model.Employee) (string, error) {
 
 func (d *db) Update(employee model.Employee) (string, error) {
 
-	res, err := d.db.Exec("UPDATE employee SET name=?, city=? WHERE id=?", employee.Id, employee.Name, employee.City)
+	id, err := strconv.Atoi(employee.Id)
 	if err != nil {
 		return "", err
 	}
-	id, err := res.LastInsertId()
+	res, err := d.db.Exec("UPDATE employee SET name=?, city=? WHERE id=?", employee.Name, employee.City, id)
+	if err != nil {
+		return "", err
+	}
+
+	rows, err := res.RowsAffected()
+
+	if err != nil {
+		return "", err
+	}
+	if rows == 0 {
+		return "", fmt.Errorf("%v rows impacted", rows)
+	}
 
 	return fmt.Sprint(id), nil
 }
 
 func (d *db) Delete(id int64) error {
-	_, err := d.db.Exec("DELETE FROM employee WHERE id=?", id)
+	result, err := d.db.Exec("DELETE FROM employee WHERE id=?", id)
 	if err != nil {
 		return err
 	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 1 {
+		return nil
+	}
 
-	return err
+	return fmt.Errorf("%v rows impacted", rows)
 }
